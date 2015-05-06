@@ -14,7 +14,7 @@ import (
 const (
 	writeWait  = 10 * time.Second
 	pingPeriod = 55 * time.Second
-	httpPort   = "8080"
+	httpPort   = 8080
 	httpHost   = "127.0.0.1"
 	socketPath = "/socket"
 )
@@ -27,7 +27,7 @@ type TplData struct {
 func Home(tpl template.Template) func(w http.ResponseWriter, req *http.Request) {
 	tplData := TplData{
 		MapApiKey: mapping.ApiKey,
-		SocketUri: fmt.Sprintf("ws://%s:%s%s", httpHost, httpPort, socketPath),
+		SocketUri: fmt.Sprintf("ws://%s:%d%s", httpHost, httpPort, socketPath),
 	}
 	return func(w http.ResponseWriter, req *http.Request) {
 		err := tpl.Execute(w, &tplData)
@@ -83,5 +83,5 @@ func main() {
 
 	http.HandleFunc(socketPath, Socket)
 	http.HandleFunc("/", Home(*page))
-	http.ListenAndServe(fmt.Sprintf("%s:%s", httpHost, httpPort), nil)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", httpHost, httpPort), nil)
 }
