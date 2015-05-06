@@ -1,41 +1,44 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/emarref/livemap/mapping"
 	"github.com/gorilla/websocket"
 )
 
 const (
 	writeWait  = 10 * time.Second
-	pongWait   = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
-	filePeriod = 10 * time.Second
+	pingPeriod = 55 * time.Second
+	httpPort   = "8080"
+	httpHost   = "127.0.0.1"
+	socketPath = "/socket"
 )
 
-type GeoEvent struct {
-	Lat  float64
-	Long float64
+type TplData struct {
+	MapApiKey string
+	SocketUri string
 }
 
 func Home(tpl template.Template) func(w http.ResponseWriter, req *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		tpl.Execute(w, "Zippity")
+	tplData := TplData{
+		MapApiKey: mapping.ApiKey,
+		SocketUri: fmt.Sprintf("ws://%s:%s%s", httpHost, httpPort, socketPath),
 	}
-}
-
-func SendGeoEvent(ws *websocket.Conn, geoEvent *GeoEvent) {
-	log.Println(geoEvent)
-	if err := ws.WriteJSON(geoEvent); err != nil {
-		log.Println("Could not send message")
-		log.Println(err)
+	return func(w http.ResponseWriter, req *http.Request) {
+		err := tpl.Execute(w, &tplData)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 
 func Socket(w http.ResponseWriter, req *http.Request) {
+	log.Println("Opening socket")
 	pingTicker := time.NewTicker(pingPeriod)
 	upgrader := websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	ws, err := upgrader.Upgrade(w, req, nil)
@@ -47,9 +50,14 @@ func Socket(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	go SendGeoEvent(ws, &GeoEvent{-36.8484597, 174.7633315})
+	ge := mapping.GeoEvent{-36.8484597, 174.7633315}
+	go ge.Send(ws, &ge)
+
 	time.Sleep(time.Second * 5)
-	go SendGeoEvent(ws, &GeoEvent{59.32522, 18.07002})
+
+	ge = mapping.GeoEvent{59.32522, 18.07002}
+	go ge.Send(ws, &ge)
+
 	defer func() {
 		log.Println("Closing socket")
 		ws.Close()
@@ -70,10 +78,10 @@ func Socket(w http.ResponseWriter, req *http.Request) {
 func main() {
 	page, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
-	http.HandleFunc("/socket", Socket)
+	http.HandleFunc(socketPath, Socket)
 	http.HandleFunc("/", Home(*page))
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(fmt.Sprintf("%s:%s", httpHost, httpPort), nil)
 }
