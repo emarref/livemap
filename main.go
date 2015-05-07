@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/emarref/livemap/mapping"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,7 +14,7 @@ const (
 	writeWait  = 10 * time.Second
 	pingPeriod = 55 * time.Second
 	httpPort   = 8080
-	httpHost   = "127.0.0.1"
+	httpHost   = "localhost"
 	socketPath = "/socket"
 )
 
@@ -26,7 +25,7 @@ type TplData struct {
 
 func Home(tpl template.Template) func(w http.ResponseWriter, req *http.Request) {
 	tplData := TplData{
-		MapApiKey: mapping.ApiKey,
+		MapApiKey: ApiKey,
 		SocketUri: fmt.Sprintf("ws://%s:%d%s", httpHost, httpPort, socketPath),
 	}
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -38,9 +37,9 @@ func Home(tpl template.Template) func(w http.ResponseWriter, req *http.Request) 
 }
 
 func Socket(w http.ResponseWriter, req *http.Request) {
-	log.Println("Opening socket")
+	var upgrader websocket.Upgrader
 	pingTicker := time.NewTicker(pingPeriod)
-	upgrader := websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+	log.Println("Opening socket")
 	ws, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
@@ -50,12 +49,12 @@ func Socket(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ge := mapping.GeoEvent{-36.8484597, 174.7633315}
+	ge := GeoEvent{-36.8484597, 174.7633315}
 	go ge.Send(ws, &ge)
 
 	time.Sleep(time.Second * 5)
 
-	ge = mapping.GeoEvent{59.32522, 18.07002}
+	ge = GeoEvent{59.32522, 18.07002}
 	go ge.Send(ws, &ge)
 
 	defer func() {
