@@ -1,27 +1,52 @@
 package main
 
-import (
-	"fmt"
-	"net/http"
-	"time"
+import "log"
+import "time"
 
-	"github.com/gorilla/websocket"
-)
+type GeoEvent struct {
+	Lat, Long float32
+}
 
-const (
-	pingPeriod = 55 * time.Second
-	httpPort   = 8080
-	httpHost   = "localhost"
-	socketPath = "/socket"
-)
-
-var socket *websocket.Conn
+var socket chan GeoEvent
 
 func main() {
-	c := &controller{}
-	http.HandleFunc(socketPath, c.socket())
-	http.HandleFunc("/", c.home())
-	http.ListenAndServe(fmt.Sprintf("%s:%d", httpHost, httpPort), nil)
+	// Acquire configuration
+	log.Println("Initialising configuration")
+	err := InitialiseConfiguration("config.yml")
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
 
-	go provideEvents()
+	// Open websocket
+	log.Println("Initialising websocket")
+	wc, err := InitialiseWebsocket()
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+
+	// Initialise provider for generating geo events
+	// First provider will be sending dummy events every 3 seconds.
+	log.Println("Initialising provider")
+	provider := InitialiseProvider(wc)
+	go func() {
+		poll := time.NewTicker(time.Second * 5)
+		for {
+			select {
+			case <-poll.C:
+				provider.Tick()
+			case msg := <-wc.In:
+				wc.Out <- msg
+			}
+		}
+	}()
+
+	// Serve home page
+	log.Println("Initialising web server")
+	err = InitialiseWebserver()
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
 }

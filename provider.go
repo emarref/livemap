@@ -1,15 +1,19 @@
 package main
 
-import (
-	"log"
-	"time"
-)
+import "github.com/emarref/webchannel"
 
-func provideEvents() {
-	timer := time.NewTicker(time.Second * 3)
-	go func() {
-		for t := range timer.C {
-			log.Println(t)
-		}
-	}()
+type Provider interface {
+	Tick()
+}
+
+type DummyProvider struct {
+	wc *webchannel.WebChannel
+}
+
+func (provider DummyProvider) Tick() {
+	provider.wc.Out <- []byte("Dummy provider")
+}
+
+func InitialiseProvider(wc *webchannel.WebChannel) Provider {
+	return DummyProvider{wc}
 }

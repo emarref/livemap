@@ -1,1 +1,5 @@
-all:
+http:
+    port: 8080
+    host: localhost
+socket:
+    path: /socket
