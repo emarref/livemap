@@ -1,0 +1,7 @@
+http:
+    port: 8080
+    host: localhost
+socket:
+    path: /socket
+map:
+    api_key: somethinggibberishhere
