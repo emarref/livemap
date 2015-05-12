@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Initialise provider for generating geo events
-	// First provider will be sending dummy events every 3 seconds.
+	// Dummy provider will be sending dummy events every 5 seconds.
 	log.Println("Initialising provider")
 	provider := InitialiseProvider(wc)
 	go func() {
