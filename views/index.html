@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>Map</title>
+        <title>Livemap</title>
         <style type="text/css">
             html, body, #map-canvas { height: 100%; margin: 0; padding: 0;}
         </style>
@@ -12,8 +12,10 @@
                     center: { lat: 0, lng: 180 },
                     zoom: 2
                 };
+                var maxMarkers = 1;
                 var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
                 var socket = new WebSocket({{.SocketUri}});
+                markers = [];
                 socket.onopen = function() {
                     console.log("Open");
                 }
@@ -21,11 +23,17 @@
                     msg = JSON.parse(msg.data)
                         console.log("Message", msg);
                     var spot = new google.maps.LatLng(msg.Lat, msg.Long);
-                    marker = new google.maps.Marker({
+                    var marker = new google.maps.Marker({
                         map: map,
                         animation: google.maps.Animation.DROP,
                         position: spot
                     });
+                    markers.push(marker);
+                    if (markers.length > maxMarkers) {
+                        console.log("Removing old marker");
+                        markers[0].setMap(null);
+                        markers = markers.splice(1, maxMarkers)
+                    }
                 }
                 socket.onclose = function () {
                     console.log("Close");
