@@ -19,7 +19,7 @@ type DummyProvider struct {
 func (provider DummyProvider) Tick() {
 	rand.Seed(time.Now().UnixNano())
 	geo := GeoEvent{
-		Lat:  rand.Float32()*360 - 180,
+		Lat:  rand.Float32()*180 - 90,
 		Long: rand.Float32()*360 - 180,
 	}
 
